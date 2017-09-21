@@ -1,0 +1,249 @@
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: "Miso";
+}
+
+h1 {
+    font-size: 230%;
+    text-align: center;
+    text-transform: uppercase;
+    margin-top: 20px;
+}
+
+.twitter-share-button {
+    float: right;
+    margin-right: 40px;
+}
+
+.container {
+    width: 1280px;
+    margin: 0 auto;
+}
+
+.banner {
+    display: flex;
+}
+
+.svg-container {
+    flex: 1;
+}
+
+.svg-container .tick text {
+    font-family: "Miso";
+    font-size: 150%;
+    text-shadow: 0 1px 0 #fff;
+}
+
+.fight-view {
+    width: 20%;
+    display: flex;
+}
+
+.fight-view section {
+    display: inline-flex;
+    flex-direction: column;
+    margin: 10px 30px;
+    width: 80%;
+    margin: 0 auto;
+    padding: 20px 0;
+}
+
+.fight-view .fighter h3 {
+    font-size: 140%;
+    background: rgba(0,0,0,0.2);
+    padding: 6px 10px 4px 10px;
+    min-width: 160px;
+    min-height: 35px;
+    text-align: center;
+}
+
+.fight-view .fighter.top h3 {
+    border-bottom: 3px solid rgba(0,0,0,0.4);
+    border-radius: 10px 10px 0 0;
+}
+
+.fight-view .fighter.bottom h3 {
+    border-top: 3px solid rgba(0,0,0,0.4);
+    border-radius: 0 0 10px 10px;
+}
+
+.fight-view .fighter.win h3 {
+    border-color: green;
+    background: #53d253;
+}
+
+.fight-view .fighter.loss h3 {
+    border-color: red;
+    background: #ff7a7a;
+}
+
+.fight-view .fighter h3 a {
+    color: #fff;
+    text-decoration: none;
+}
+
+.fight-view .fighter h3 a:hover {
+    text-decoration: underline;
+}
+
+.fight-view .result {
+    display: flex;
+    justify-content: space-between;
+}
+
+.fight-view .result .clip {
+    padding: 4px 6px 2px 6px;
+    color: #fff;
+    font-size: 115%;
+    border-radius: 4px;
+}
+
+.fight-view .result .clip.win { background: green; }
+.fight-view .result .clip.loss { background: red; }
+
+.fight-view .squeeze .bar {
+    height: 20px;
+    width: 51.5%;
+    border-right: 3px;
+    border-style: solid;
+    border-color: rgba(0,0,0,0.1);
+}
+
+.fight-view .fighter.win .bar { border-color: green; }
+.fight-view .fighter.loss .bar { border-color: red; }
+.fight-view .fighter.top.win .bar { width: calc(100% - 18px); }
+.fight-view .fighter.bottom.loss .bar { width: 22px; }
+.fight-view .fighter.top.loss .bar { width: 22px; }
+.fight-view .fighter.bottom.win .bar { width: calc(100% - 18px); }
+
+.fight-view .result .vs {
+    text-align: center;
+    padding: 2px 6px;
+    font-size: 130%;
+    background: rgba(0,0,0,0.1);
+    border-radius: 100px;
+    display: inline-block;
+}
+
+.fight-view .detail .fight {
+    display: flex;
+    text-align: center;
+    padding-top: 12px;
+    margin-bottom: 10px;
+}
+
+.fight-view .detail .fight .round, .fight-view .detail .fight .time {
+    flex: 1;
+}
+
+.fight-view .detail h5 {
+    text-transform: uppercase;
+    color: rgba(0,0,0,0.6);
+    padding: 4px 0;
+    font-size: 95%;
+}
+
+.fight-view .detail h3 {
+    font-size: 120%;
+}
+
+.fight-view .detail .fight .round h3 {
+    font-size: 55px;
+}
+
+.fight-view .detail .fight .time h3 {
+    font-size: 40px;
+    margin-top: 5px;
+}
+
+.fight-view .detail table {
+    margin-top: 12px;
+}
+
+.fight-view .detail table td {
+    padding: 3px 6px;
+}
+
+.fight-view .detail table tr td:first-child {
+    text-align: right;
+    text-transform: uppercase;
+    color: rgba(0,0,0,0.6);
+    font-size: 95%;
+}
+
+.fight-view .detail .event, .fight-view .detail .date {
+    margin-bottom: 8px;
+}
+
+.fight-view .detail .event a {
+    color: inherit;
+}
+
+.fighter-list {
+    display: flex;
+}
+
+.fighter-label {
+    pointer-events: none;
+}
+
+.control {
+    display: flex;
+    margin: 8px 0;
+}
+
+.control button {
+    margin: 0 4px;
+    text-transform: uppercase;
+    font-family: inherit;
+    font-size: 18px;
+    padding: 4px 6px 0px 6px;
+    border-radius: 4px;
+    background: rgba(0,0,0,0.1);
+    border: 1px solid rgba(0,0,0,0.2);
+}
+
+.fighter-list td {
+    padding: 3px;
+}
+
+.control button:first-child {
+    margin-left: 0;
+}
+
+.control input[type=text] {
+    margin: 0 8px;
+    font-size: 16px;
+    padding: 4px 8px;
+    outline: none;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+}
+
+.control .range {
+    margin: 0 8px;
+}
+
+.control .range label {
+    text-transform: uppercase;
+    display: block;
+}
+
+.control .range input[type=range] {
+    width: 100px;
+}
+
+#hidden-fighters {
+    display: block;
+    align-self: center;
+    color: rgba(0,0,0,0.3);
+    margin: 8px;
+}
+
+footer {
+    text-align: center;
+    padding: 20px;
+}

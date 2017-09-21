@@ -1,0 +1,15 @@
+{
+  "dependencies": {
+    "d3": "^4.10.2",
+    "lodash": "^4.17.4"
+  },
+  "devDependencies": {
+    "cheerio": "^1.0.0-rc.2",
+    "csv": "^1.1.1",
+    "node-fetch": "^1.7.3"
+  },
+  "scripts": {
+    "update": "node scraper",
+    "publish": "git co gh-pages && git rebase master && git push origin master && git checkout master"
+  }
+}
