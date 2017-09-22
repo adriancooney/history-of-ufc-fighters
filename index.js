@@ -107,9 +107,9 @@ function drawFights(rawData) {
 
         onReset(state) {
             updateTable(tableOptions, Object.assign({}, state, {
-                winCount: 1,
+                winCount: 0,
                 lossCount: 0,
-                totalCount: 5,
+                totalCount: 1,
                 filter: null
             }));
         },
