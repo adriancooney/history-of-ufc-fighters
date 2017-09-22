@@ -476,9 +476,12 @@ function drawTable(container, domain, events, fighters, options, state) {
 
     enterRow.append("td")
         .append("input")
+        .attr("id", ({ id }) => `selected-${id}`)
         .attr("type", "checkbox");
 
     enterRow.append("td")
+        .append("label")
+        .attr("for", ({ id }) => `selected-${id}`)
         .text(({ name }) => name);
 
     row.merge(enterRow)
