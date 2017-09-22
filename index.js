@@ -126,6 +126,9 @@ function drawFights(rawData) {
 
         onChangeFilter(state, value) {
             updateTable(tableOptions, Object.assign({}, state, {
+                winCount: 0,
+                lossCount: 0,
+                totalCount: 1,
                 filter: value ? new RegExp(value, "i") : null
             }));
         },
