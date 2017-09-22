@@ -30,7 +30,7 @@ const padding = {
 };
 
 function main() {
-    d3.csv("data/fights-2.csv", drawFights);
+    d3.csv("data/fights.csv", drawFights);
 }
 
 function drawFights(rawData) {
