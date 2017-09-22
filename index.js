@@ -48,37 +48,33 @@ function drawFights(rawData) {
 
     const chartOptions = {
         onInspectFight(state, fight) {
-            updateChart(chartOptions, {
-                ...state,
+            updateChart(chartOptions, Object.assign({}, state, {
                 inspectedFights: _.uniqBy(state.inspectedFights.concat(fight), _.property("id"))
-            });
+            }));
 
             drawFight(fight);
         },
 
         onUninspectFight(state, fight) {
-            updateChart(chartOptions, {
-                ...state,
+            updateChart(chartOptions, Object.assign({}, state, {
                 inspectedFights: state.inspectedFights.filter(({ id }) => fight.id !== id)
-            });
+            }));
 
             drawFight(state.selectedFights.length ? state.selectedFights[0] : undefined);
         },
 
         onSelectFight(state, fight) {
-            updateChart(chartOptions, {
-                ...state,
+            updateChart(chartOptions, Object.assign({}, state, {
                 selectedFights: _.uniqBy(state.inspectedFights.concat(fight), _.property("id"))
-            });
+            }));
 
             drawFight(fight);
         },
 
         onDeselectAllFights(state, fight) {
-            updateChart(chartOptions, {
-                ...state,
+            updateChart(chartOptions, Object.assign({}, state, {
                 selectedFights: []
-            });
+            }));
 
             drawFight();
         }
@@ -94,7 +90,7 @@ function drawFights(rawData) {
                 selectedFights: []
             });
 
-            updateTable(tableOptions, { ...state, selectedFighters });
+            updateTable(tableOptions, Object.assign({}, state, { selectedFighters }));
         },
 
         onDeselectFighter(state, fighter) {
@@ -106,17 +102,16 @@ function drawFights(rawData) {
                 selectedFights: []
             });
 
-            updateTable(tableOptions, { ...state, selectedFighters });
+            updateTable(tableOptions, Object.assign({}, state, { selectedFighters }));
         },
 
         onReset(state) {
-            updateTable(tableOptions, {
-                ...state,
+            updateTable(tableOptions, Object.assign({}, state, {
                 winCount: 1,
                 lossCount: 0,
                 totalCount: 5,
                 filter: null
-            });
+            }));
         },
 
         onDeselectAll(state) {
@@ -126,37 +121,33 @@ function drawFights(rawData) {
                 selectedFights: []
             });
 
-            updateTable(tableOptions, { ...state, selectedFighters: [] });
+            updateTable(tableOptions, Object.assign({}, state, { selectedFighters: [] }));
         },
 
         onChangeFilter(state, value) {
-            updateTable(tableOptions, {
-                ...state,
+            updateTable(tableOptions, Object.assign({}, state, {
                 filter: value ? new RegExp(value, "i") : null
-            });
+            }));
         },
 
         onChangeFightCount(state, value) {
-            updateTable(tableOptions, {
-                ...state,
+            updateTable(tableOptions, Object.assign({}, state, {
                 totalCount: Math.max(Math.max(value, state.winCount), state.lossCount)
-            });
+            }));
         },
 
         onChangeWinCount(state, value) {
-            updateTable(tableOptions, {
-                ...state,
+            updateTable(tableOptions, Object.assign({}, state, {
                 winCount: value,
                 totalCount: Math.max(state.totalCount, value)
-            });
+            }));
         },
 
         onChangeLossCount(state, value) {
-            updateTable(tableOptions, {
-                ...state,
+            updateTable(tableOptions, Object.assign({}, state, {
                 lossCount: value,
                 totalCount: Math.max(state.totalCount, value)
-            });
+            }));
         }
     };
 
@@ -569,7 +560,7 @@ function transformFightData(data) {
     }, {});
 
     // Transform the fights
-    fighters = Object.entries(fighters).map(([fighter, fights]) => {
+    fighters = _.toPairs(fighters).map(([fighter, fights]) => {
         fights = _.sortBy(fights, _.property("date"));
         const results = fights.map(fight => transformResult(fight[`${fighterIndex(fight, fighter)}result`]));
         const wins = results.filter(result => result === 1).length;
@@ -612,7 +603,7 @@ function transformFightData(data) {
         };
     });
 
-    events = Object.entries(events).map(([ event, fights ]) => {
+    events = _.toPairs(events).map(([ event, fights ]) => {
         return {
             name: fights[0].event_name,
             org: fights[0].event_org,

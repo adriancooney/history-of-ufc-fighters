@@ -33,6 +33,10 @@ h1 {
     flex: 1;
 }
 
+.svg-container svg {
+    width: 100%;
+}
+
 .svg-container .tick text {
     font-family: "Miso";
     font-size: 150%;
