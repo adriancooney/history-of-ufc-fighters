@@ -9,6 +9,7 @@
     "node-fetch": "^1.7.3"
   },
   "scripts": {
+    "serve": "python -m SimpleHTTPServer",
     "update": "node scraper",
     "publish": "git checkout gh-pages && git rebase master && git reset HEAD^ && yarn install --prod && git add -A && git commit -m 'deploy' && git push origin gh-pages -f && git checkout master"
   }
