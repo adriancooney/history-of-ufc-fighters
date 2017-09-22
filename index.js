@@ -26,7 +26,7 @@ const columns = 6;
 const width = 960;
 const height = 500;
 const padding = {
-    t: 50, r: 5, b: 20, l: 50
+    t: 50, r: 20, b: 20, l: 50
 };
 
 function main() {
@@ -174,8 +174,7 @@ function drawChart(svg, domain, events, fighters, options, state) {
         .range([ 0, height - (padding.t + padding.b) ]);
 
     const timeTicks = d3.scaleTime()
-        .domain([ domain.minDate, domain.maxDate ])
-        .range([ 0, width - (padding.l + padding.r) ])
+        .domain([ domain.minDate, domain.maxDate ]);
 
     const timeScale = d3.scalePow()
         .exponent(4)
@@ -209,8 +208,8 @@ function drawChart(svg, domain, events, fighters, options, state) {
             .call(netWinsAxis);
 
         const timeAxis = d3.axisBottom(timeScale)
-            .tickFormat(tick => new Date(tick).getFullYear())
-            .tickValues(_.drop(timeTicks.ticks(14), 1))
+            .tickFormat(tick => tick ? typeof tick === "string" ? tick : tick.getFullYear() : undefined)
+            .tickValues(_.drop(timeTicks.ticks(14), 1).concat(domain.maxDate));
 
         svg.append("g")
             .attr("transform", `translate(${padding.l}, ${padding.t + netWinsScale(0)})`)
