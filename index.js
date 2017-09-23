@@ -572,9 +572,6 @@ function transformFightData(data) {
         const losses = results.filter(result => result === -1).length;
 
         const line = [0].concat(results.map((result, i) => _.sum(results.slice(0, i + 1))));
-        if(fighter.match(/conor/i)) {
-            console.log(results, line);
-        }
         const weights = fights.map(fight => fight.weight);
         const slope = line[line.length - 1] / (line.length - 1);
         const max = _.max(line);
