@@ -4,6 +4,9 @@ const fetch = require("node-fetch");
 const cheerio = require("cheerio");
 const csv = require("csv");
 const {
+    csvRead, csvWrite
+} = require("../util");
+const {
     sortBy,
     property,
     last
@@ -12,7 +15,7 @@ const {
 const SHERDOG_URL = "http://www.sherdog.com"
 
 // Read what we already got
-csvParse(path.resolve(__dirname, "../data/fights.csv"), {
+csvRead(path.resolve(__dirname, "../data/fights.csv"), {
     columns: true,
     auto_parse: true
 }).then(data => {
@@ -43,15 +46,13 @@ csvParse(path.resolve(__dirname, "../data/fights.csv"), {
         allFights = allFights.concat(fights.map(fight => Object.assign(fight, event)));
     }
 
-    return csvFormat(data.concat(allFights), {
+    return csvWrite(path.resolve(__dirname, "../data/fights.csv"), data.concat(allFights), {
         columns: "pageurl,eid,mid,event_name,event_org,event_date,event_place,f1pageurl,f2pageurl,f1name,f2name,f1result,f2result,f1fid,f2fid,method,method_d,ref,round,time".split(","),
         header: true,
         formatters: {
             date: formatDate
         }
     });
-}).then(fights => {
-    fs.writeFileSync(path.resolve(__dirname, "../data/fights.csv"), fights);
 });
 
 function getRecentEventsByPage(page) {
@@ -154,30 +155,6 @@ function getFightsForEvent(event) {
         }).get();
 
         return [mainEventData, ...matches];
-    });
-}
-
-function csvParse(file, options) {
-    return new Promise((resolve, reject) => {
-        csv.parse(fs.readFileSync(file), options, (err, data) => {
-            if(err) {
-                reject(err);
-            } else {
-                resolve(data);
-            }
-        });
-    });
-}
-
-function csvFormat(data, options) {
-    return new Promise((resolve, reject) => {
-        csv.stringify(data, options, (err, output) => {
-            if(err) {
-                reject(err);
-            } else {
-                resolve(output);
-            }
-        });
     });
 }
 

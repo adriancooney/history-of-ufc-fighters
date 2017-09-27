@@ -6,7 +6,8 @@
   "devDependencies": {
     "cheerio": "^1.0.0-rc.2",
     "csv": "^1.1.1",
-    "node-fetch": "^1.7.3"
+    "node-fetch": "^1.7.3",
+    "pg": "^7.3.0"
   },
   "scripts": {
     "serve": "python -m SimpleHTTPServer",
