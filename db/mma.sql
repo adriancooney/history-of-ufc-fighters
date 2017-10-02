@@ -5,6 +5,19 @@ CREATE TYPE FIGHT_RESULT AS ENUM (
     'NC'
 );
 
+CREATE TYPE FIGHTER_CLASS AS ENUM (
+    'Heavyweight',
+    'Featherweight',
+    'Light Heavyweight',
+    'Lightweight',
+    'Strawweight',
+    'Flyweight',
+    'Middleweight',
+    'Super Heavyweight',
+    'Welterweight',
+    'Bantamweight'
+);
+
 CREATE TABLE promotions(
     id       SERIAL PRIMARY KEY,
     name     VARCHAR(200),
@@ -15,6 +28,13 @@ CREATE TABLE fighters(
     id          SERIAL PRIMARY KEY,
     name        VARCHAR(100),
     nickname    VARCHAR(100),
+    dob         DATE,
+    nationality VARCHAR(100),
+    address     VARCHAR(250),
+    association VARCHAR(100),
+    class       FIGHTER_CLASS,
+    height      DECIMAL,
+    weight      DECIMAL,
     sherdog_id  INT UNIQUE,
     sherdog_url VARCHAR(100)
 );
@@ -46,7 +66,7 @@ CREATE TABLE fight_fighters(
     result      FIGHT_RESULT
 );
 
-CREATE VIEW all_fights AS
+CREATE VIEW full_fights AS
     SELECT DISTINCT ON (CASE WHEN ff1.fighter < ff2.fighter THEN (f.id, ff1.fighter, ff2.fighter) ELSE (f.id, ff2.fighter, ff1.fighter) END)
         f.id as id,
         ff1.fighter as f1_id,
@@ -59,3 +79,21 @@ CREATE VIEW all_fights AS
     JOIN fight_fighters ff2 ON ff2.fight = f.id AND ff2.fighter != ff1.fighter
     JOIN fighters f1 ON f1.id = ff1.fighter
     JOIN fighters f2 ON f2.id = ff2.fighter;
+
+CREATE VIEW fighters_stats AS
+    SELECT
+        f.id,
+        f.name,
+        f.nickname,
+        array_agg(CASE WHEN ff.result = 'win' THEN 1 WHEN ff.result = 'loss' THEN -1 ELSE 0 END) AS fight_history,
+        count(ff.fight) AS fight_count,
+        count(ff.fighter) FILTER (WHERE ff.result = 'win') AS win_count,
+        count(ff.fighter) FILTER (WHERE ff.result = 'loss') AS loss_count,
+        count(ff.fighter) FILTER (WHERE ff.result = 'draw') AS draw_count
+    FROM
+        fighters f,
+        fight_fighters ff
+    WHERE
+        ff.fighter = f.id
+    GROUP BY
+        ff.fighter, f.id;

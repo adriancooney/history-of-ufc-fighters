@@ -1,13 +1,12 @@
--- SELECT
---     f.id,
---     ff1.fighter,
---     ff2.fighter
--- FROM
---     fights f,
---     fight_fighters ff1,
---     fight_fighters ff2
--- WHERE
---     ff1.fight = f.id AND
---     ff2.fight = f.id AND
---     ff1.fighter != ff2.fighter AND
---     f.id = 1;
+SELECT
+    f.id,
+    f.name,
+    f.nickname,
+    array_agg(CASE WHEN ff.result = 'win' THEN 1 WHEN ff.result = 'loss' THEN -1 ELSE 0 END) as history
+FROM
+    fighters f,
+    fight_fighters ff
+WHERE
+    ff.fighter = f.id
+GROUP BY
+    ff.fighter, f.id;

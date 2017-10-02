@@ -12,10 +12,13 @@ const {
 const { readFile, csvRead } = require("../util");
 
 const SQL_FILE = path.resolve(__dirname, "../../../db/mma.sql");
-const DATA_FILE = path.resolve(__dirname, "../../fights.csv");
+const FIGHTS_FILE = path.resolve(__dirname, "../../fights.csv");
+const FIGHTERS_FILE = path.resolve(__dirname, "../../fighters.csv");
 
-initializeDatabase(SQL_FILE).then(client => {
-    return populateDatabase(client, DATA_FILE).then(() => {
+initialize(SQL_FILE).then(client => {
+    return populateFights(client, FIGHTS_FILE).then(() => {
+        return populateFighters(client, FIGHTERS_FILE);
+    }).then(() => {
         client.end();
     }).catch(err => {
         client.end();
@@ -24,7 +27,7 @@ initializeDatabase(SQL_FILE).then(client => {
     });
 }).catch(err => console.error(err.stack));
 
-async function initializeDatabase(sqlFile) {
+async function initialize(sqlFile) {
     const rootClient = new Client({
         database: "postgres"
     });
@@ -54,7 +57,7 @@ async function initializeDatabase(sqlFile) {
     return client;
 }
 
-async function populateDatabase(client, filepath) {
+async function populateFights(client, filepath) {
     const data = await csvRead(filepath, { columns: true });
 
     const promotionResult = await client.query(
@@ -142,6 +145,40 @@ async function populateDatabase(client, filepath) {
             );
         });
     });
+}
+
+async function populateFighters(client, filepath) {
+    console.log(`> Read ${filepath}`);
+    const fighters = await csvRead(filepath, { columns: true });
+
+    for(let i = 0; i < fighters.length; i++) {
+        const fighter = fighters[i];
+        const [_, y, m, d] = fighter.dob.match(/(\d+)-(\d+)-(\d+)/) || [];
+
+        console.log(fighter);
+        await client.query(
+            `UPDATE fighters SET
+                dob = $1,
+                nationality = $2,
+                address = $3,
+                association = $4,
+                class = $5,
+                height = $6,
+                weight = $7
+            WHERE
+                sherdog_id = $8`,
+            [
+                d && m && y ? `${d}/${m}/${y}` : null,
+                fighter.nationality || null,
+                fighter.address || null,
+                fighter.association || null,
+                fighter["class"] && fighter["class"] !== "N/A" ? fighter["class"] : null,
+                fighter.height || null,
+                fighter.weight || null,
+                fighter.id
+            ]
+        );
+    }
 }
 
 function pickFighter(idx, fight) {
