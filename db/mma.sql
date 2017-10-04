@@ -174,6 +174,12 @@ CREATE VIEW mma.bounds_fights AS
             fighter
     ) AS f;
 
+CREATE VIEW mma.bounds_fighters AS
+    SELECT
+        count(*) as fighter_count
+    FROM
+        mma.fighter;
+
 CREATE VIEW mma.bounds_results AS
     SELECT
         max(win_count) as max_win_count,
@@ -204,7 +210,7 @@ CREATE VIEW mma.bounds_line AS
         unnest(fs.fight_line) fl;
 
 CREATE VIEW mma.bounds AS
-    SELECT * FROM mma.bounds_results, mma.bounds_line, mma.bounds_dates, mma.bounds_fights;
+    SELECT * FROM mma.bounds_results, mma.bounds_line, mma.bounds_dates, mma.bounds_fights, mma.bounds_fighters;
 
 CREATE ROLE mmaweb LOGIN;
 GRANT CONNECT ON DATABASE mma TO mmaweb;

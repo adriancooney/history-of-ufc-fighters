@@ -34,52 +34,54 @@ function main() {
     d3.csv("data/fights.csv", drawFights);
 }
 
-function drawFights(rawData) {
-    let { domain, fighters, events } = transformFightData(rawData);
-
+async function drawFights(rawData) {
     const svg = d3.select(".svg-container")
         .append("svg")
         .attr("viewBox", `0 0 ${width} ${height}`);
 
     const tableContainer = d3.select(".fighter-list");
 
-    const selected = initialSelected.map(fighter => fighters.find(({ name }) => name === fighter));
-    const updateChart = drawChart.bind(null, svg, domain, events, fighters);
+    const selected = await getInitialSelectedFighters();
+    const domain = await getBounds();
+    const fighters = await getFighters({ winCount: 6 });
+    const events = await getEvents();
+
+    // const updateChart = drawChart.bind(null, svg, domain, events, fighters);
     const updateTable = drawTable.bind(null, tableContainer, domain, events, fighters);
 
-    const chartOptions = {
-        onInspectFight(state, fight) {
-            updateChart(chartOptions, Object.assign({}, state, {
-                inspectedFights: _.uniqBy(state.inspectedFights.concat(fight), _.property("id"))
-            }));
+    // const chartOptions = {
+    //     onInspectFight(state, fight) {
+    //         updateChart(chartOptions, Object.assign({}, state, {
+    //             inspectedFights: _.uniqBy(state.inspectedFights.concat(fight), _.property("id"))
+    //         }));
 
-            drawFight(fight);
-        },
+    //         drawFight(fight);
+    //     },
 
-        onUninspectFight(state, fight) {
-            updateChart(chartOptions, Object.assign({}, state, {
-                inspectedFights: state.inspectedFights.filter(({ id }) => fight.id !== id)
-            }));
+    //     onUninspectFight(state, fight) {
+    //         updateChart(chartOptions, Object.assign({}, state, {
+    //             inspectedFights: state.inspectedFights.filter(({ id }) => fight.id !== id)
+    //         }));
 
-            drawFight(state.selectedFights.length ? state.selectedFights[0] : undefined);
-        },
+    //         drawFight(state.selectedFights.length ? state.selectedFights[0] : undefined);
+    //     },
 
-        onSelectFight(state, fight) {
-            updateChart(chartOptions, Object.assign({}, state, {
-                selectedFights: _.uniqBy(state.inspectedFights.concat(fight), _.property("id"))
-            }));
+    //     onSelectFight(state, fight) {
+    //         updateChart(chartOptions, Object.assign({}, state, {
+    //             selectedFights: _.uniqBy(state.inspectedFights.concat(fight), _.property("id"))
+    //         }));
 
-            drawFight(fight);
-        },
+    //         drawFight(fight);
+    //     },
 
-        onDeselectAllFights(state, fight) {
-            updateChart(chartOptions, Object.assign({}, state, {
-                selectedFights: []
-            }));
+    //     onDeselectAllFights(state, fight) {
+    //         updateChart(chartOptions, Object.assign({}, state, {
+    //             selectedFights: []
+    //         }));
 
-            drawFight();
-        }
-    };
+    //         drawFight();
+    //     }
+    // };
 
     const tableOptions = {
         onSelectFighter(state, fighter) {
@@ -155,11 +157,11 @@ function drawFights(rawData) {
         }
     };
 
-    updateChart(chartOptions, {
-        selectedFighters: selected,
-        inspectedFights: [],
-        selectedFights: []
-    });
+    // updateChart(chartOptions, {
+    //     selectedFighters: selected,
+    //     inspectedFights: [],
+    //     selectedFights: []
+    // });
 
     updateTable(tableOptions, {
         winCount: 1,
@@ -407,27 +409,7 @@ function drawChart(svg, domain, events, fighters, options, state) {
 }
 
 function drawTable(container, domain, events, fighters, options, state) {
-    const filteredFighters = fighters.filter(fighter => {
-        if(fighter.fights.length < state.totalCount) {
-            return false;
-        }
-
-        if(fighter.wins < state.winCount) {
-            return false;
-        }
-
-        if(fighter.losses < state.lossCount) {
-            return false;
-        }
-
-        if(state.filter && !fighter.name.match(state.filter)) {
-            return false;
-        }
-
-        return true;
-    });
-
-    const activeFighters = _.sortBy(filteredFighters, _.property("name")).map(fighter => {
+    const activeFighters = _.sortBy(fighters, _.property("name")).map(fighter => {
         return state.selectedFighters.find(({ id }) => fighter.id === id) ? Object.assign({ selected: true }, fighter) : fighter;
     });
 
@@ -444,7 +426,7 @@ function drawTable(container, domain, events, fighters, options, state) {
         });
 
     d3.select("#hidden-fighters")
-        .text(`(${fighters.length - filteredFighters.length} hidden)`);
+        .text(`(${domain.fighter_count - fighters.length} hidden)`);
 
     d3.select("#reset")
         .on("click", options.onReset.bind(null, state));
@@ -646,7 +628,11 @@ function getFighters(options = {}) {
 }
 
 function getInitialSelectedFighters() {
-    return request(`/initial_selected?select=*,fight:fights(*)`);
+    return request("/initial_selected?select=*,fights:fight(*)");
+}
+
+function getEvents() {
+    return request("/event?select=id,name,dateof");
 }
 
 function formatSherdogURL(path) {
