@@ -21,6 +21,7 @@ const initialSelected = [
     "Chad Mendes"
 ];
 
+const API_URL = `http://localhost:3000`;
 const fittedFightLocal = d3.local();
 const columns = 6;
 const width = 960;
@@ -616,6 +617,36 @@ function transformFightData(data) {
     });
 
     return { domain, fighters, events };
+}
+
+function request(url, options = {}) {
+    if(options.single) {
+        options = Object.assign({
+            headers: Object.assign({
+                Accept: "application/vnd.pgrst.object+json"
+            }, options.headers)
+        }, options);
+    }
+
+    return fetch(`${API_URL}${url}`, options).then(res => res.json());
+}
+
+function getBounds() {
+    return request(`/bounds?select=*`, { single: true });
+}
+
+function getFighters(options = {}) {
+    const filter = [];
+
+    if(options.winCount) filter.push(`win_count.gte.${options.winCount}`);
+    if(options.lossCount) filter.push(`loss_count.gte.${options.lossCount}`);
+    if(options.fightCount) filter.push(`fight_count.gte.${options.fightCount}`);
+
+    return request(`/fighter_stats?select=name,id${filter.length ? `&and=(${filter.join(",")})` : ""}`);
+}
+
+function getInitialSelectedFighters() {
+    return request(`/initial_selected?select=*,fight:fights(*)`);
 }
 
 function formatSherdogURL(path) {
