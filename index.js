@@ -651,10 +651,6 @@ function transformResult(result) {
     return result === "win" ? 1 : result === "loss" ? -1 : 0;
 }
 
-function intersect(box1, box2) {
-    return Math.abs(box1.x - box2.x) < box1.w && Math.abs(box1.y - box2.y) < box1.h;
-}
-
 function getFighterResult(fighter, fight) {
     return fight.f1result === "draw" ? "draw" : fighter.name === (fight.f1result === "win" ? fight.f1name : fight.f2name) ? "win" : "loss";
 }

@@ -16,7 +16,8 @@ CREATE TYPE mma.fight_result AS ENUM (
     'win',
     'loss',
     'draw',
-    'NC'
+    'NC',
+    'yet to come'
 );
 
 CREATE TYPE mma.fighter_class AS ENUM (
@@ -46,7 +47,7 @@ CREATE TABLE mma.fighter(
     nationality VARCHAR(100),
     address     VARCHAR(250),
     association VARCHAR(100),
-    class       mma.fighter_class,
+    class       VARCHAR(100), --mma.fighter_class,
     height      DECIMAL,
     weight      DECIMAL,
     sherdog_id  INT UNIQUE,
@@ -102,8 +103,25 @@ LANGUAGE 'plpgsql' IMMUTABLE;
 CREATE VIEW mma.full_fights AS
     SELECT DISTINCT ON (CASE WHEN ff1.fighter < ff2.fighter THEN (f.id, ff1.fighter, ff2.fighter) ELSE (f.id, ff2.fighter, ff1.fighter) END)
         f.id as id,
+        f.card_index as card_index,
+        f.method as method,
+        f.method_detail as method_detail,
+        f.round as round,
+        f.round_time as round_time,
+        f.referee as referee,
+        e.name as event_name,
+        e.location as event_location,
+        e.dateof as event_dateof,
+        p.name as promotion_name,
+        p.nickname as promotion_nickname,
         ff1.fighter as f1_id,
+        f1.name as f1_name,
+        f1.nickname as f1_nickname,
+        f1.class as f1_class,
         ff2.fighter as f2_id,
+        f2.name as f2_name,
+        f2.nickname as f2_nickname,
+        f2.class as f2_class,
         ff1.result as f1_result,
         ff2.result as f2_result
     FROM
@@ -111,13 +129,16 @@ CREATE VIEW mma.full_fights AS
     JOIN mma.fight_fighters ff1 ON ff1.fight = f.id
     JOIN mma.fight_fighters ff2 ON ff2.fight = f.id AND ff2.fighter != ff1.fighter
     JOIN mma.fighter f1 ON f1.id = ff1.fighter
-    JOIN mma.fighter f2 ON f2.id = ff2.fighter;
+    JOIN mma.fighter f2 ON f2.id = ff2.fighter
+    JOIN mma.event e on e.id = f.event
+    JOIN mma.promotion p on p.id = e.promotion;
 
 CREATE VIEW mma.fighter_stats AS
     SELECT
         f.id,
         f.name,
         f.nickname,
+        f.class,
         array_agg(CASE WHEN ff.result = 'win' THEN 1 WHEN ff.result = 'loss' THEN -1 ELSE 0 END) AS fight_history,
         mma.fight_line(array_agg(CASE WHEN ff.result = 'win' THEN 1 WHEN ff.result = 'loss' THEN -1 ELSE 0 END)::int[]) as fight_line,
         count(ff.fight) AS fight_count,
@@ -161,10 +182,38 @@ CREATE VIEW mma.initial_selected AS
             'Chad Mendes'
         );
 
+CREATE VIEW mma.promotion_fighters AS
+    SELECT
+        fr.*,
+        p.id as promotion
+    FROM
+        mma.fighter fr
+    JOIN
+        mma.fight_fighters ff ON ff.fighter = fr.id
+    JOIN
+        mma.fight f ON ff.fight = f.id
+    JOIN
+        mma.event e ON e.id = f.event
+    JOIN
+        mma.promotion p ON p.id = e.promotion
+    GROUP BY fr.id, p.id
+    ORDER BY fr.id;
+
+CREATE VIEW mma.all_fighters AS
+    SELECT
+        fs.*,
+        pf.promotion as promotion
+    FROM
+        mma.promotion_fighters pf
+    JOIN
+        mma.fighter_stats fs
+    ON
+        fs.id = pf.id;
+
 CREATE VIEW mma.bounds_fights AS
     SELECT
-        max(f.fights) as max_fights,
-        min(f.fights) as min_fights
+        max(f.fights) as max_fight_count,
+        min(f.fights) as min_fight_count
     FROM (
         SELECT
             count(fighter) as fights

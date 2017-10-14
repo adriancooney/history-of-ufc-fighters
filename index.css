@@ -21,7 +21,7 @@ h1 {
 }
 
 .container {
-    width: 1280px;
+    width: 1380px;
     margin: 0 auto;
 }
 
@@ -29,15 +29,15 @@ h1 {
     display: flex;
 }
 
-.svg-container {
+.fighter-chart {
     flex: 1;
 }
 
-.svg-container svg {
+.fighter-chart svg {
     width: 100%;
 }
 
-.svg-container .tick text {
+.fighter-chart .tick text {
     font-family: "Miso";
     font-size: 150%;
     text-shadow: 0 1px 0 #fff;
@@ -188,20 +188,29 @@ h1 {
     color: inherit;
 }
 
-.fighter-list {
-    display: flex;
-}
-
 .fighter-label {
     pointer-events: none;
 }
 
-.control {
+.fighter-table .control {
     display: flex;
     margin: 8px 0;
 }
 
-.control button {
+.fighter-table .fighter-list {
+    display: flex;
+}
+
+.fighter-table .fighter-list table {
+    flex: 1;
+    display: block;
+}
+
+.fighter-table .fighter-list td {
+    padding: 3px;
+}
+
+.fighter-table .control button {
     margin: 0 4px;
     text-transform: uppercase;
     font-family: inherit;
@@ -212,15 +221,16 @@ h1 {
     border: 1px solid rgba(0,0,0,0.2);
 }
 
-.fighter-list td {
-    padding: 3px;
-}
-
-.control button:first-child {
+.fighter-table .control button:first-child {
     margin-left: 0;
 }
 
-.control input[type=text] {
+.fighter-table .control select {
+    margin: 0 8px;
+    font-size: 16px;
+}
+
+.fighter-table .control input[type=text] {
     margin: 0 8px;
     font-size: 16px;
     padding: 4px 8px;
@@ -229,20 +239,20 @@ h1 {
     border: 1px solid #ccc;
 }
 
-.control .range {
+.fighter-table .control .range {
     margin: 0 8px;
 }
 
-.control .range label {
+.fighter-table .control .range label {
     text-transform: uppercase;
     display: block;
 }
 
-.control .range input[type=range] {
+.fighter-table .control .range input[type=range] {
     width: 100px;
 }
 
-#hidden-fighters {
+.fighter-table .hidden-fighters {
     display: block;
     align-self: center;
     color: rgba(0,0,0,0.3);

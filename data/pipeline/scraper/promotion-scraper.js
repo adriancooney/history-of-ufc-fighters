@@ -12,51 +12,98 @@ const {
     last
 } = require("lodash");
 
+let interrupted = false;
 const SHERDOG_URL = "http://www.sherdog.com"
 
-// Read what we already got
-csvRead(path.resolve(__dirname, "../data/fights.csv"), {
-    columns: true,
-    auto_parse: true
-}).then(data => {
-    return sortBy(data.map(record => ({
-        ...record,
-        event_date: new Date(record.event_date)
-    })), property("event_date"));
-}).then(async data => {
-    // This is the latest fight
-    const latestFight = last(data);
+main().catch(err => console.error(err));
+
+async function main() {
+    const promotions = await csvRead(path.resolve(__dirname, `../../promotions.csv`), {
+        columns: true
+    });
+
+    for(let promotion of promotions) {
+        if(interrupted) {
+            break;
+        }
+
+        await downloadPromotion(promotion.slug);
+    }
+}
+
+async function downloadPromotion(promotion) {
+    console.log("> downloading promotion", promotion);
+    const outputFile = path.resolve(__dirname, `../../fights/fights-${promotion}.csv`);
+    let existingData = [];
+    let latestTimestamp = -Infinity;
+
+    try {
+        const data = await csvRead(outputFile, {
+            columns: true,
+            auto_parse: true
+        });
+
+        existingData = sortBy(data.map(record => ({
+            ...record,
+            event_date: new Date(record.event_date)
+        })), property("event_date"));
+
+        latestTimestamp = last(data).event_date;
+    } catch(err) {
+        if(err.code !== "ENOENT") {
+            throw err;
+        }
+    }
 
     let page = 1;
     let events = [];
-
-    while(!events.some(({ event_date }) => event_date <= latestFight.event_date)) {
-        events = events.concat(await getRecentEventsByPage(page++));
-    }
-
-    // Only pick events after the latestFight
-    events = events.filter(({ event_date }) => event_date >= latestFight.event_date);
-
     let allFights = [];
 
-    for(let i = 0; i < events.length; i++) {
-        const event = events[i];
-        const fights = await getFightsForEvent(event.pageurl);
+    while(!events.some(({ event_date }) => event_date <= latestTimestamp) && !interrupted) {
+        try {
+            events = await getRecentEventsByPage(promotion, page++);
+        } catch(err) {
+            interrupted = err;
+            break;
+        }
 
-        allFights = allFights.concat(fights.map(fight => Object.assign(fight, event)));
+        events = events.filter(({ event_date }) => event_date >= latestTimestamp);
+
+        if(!events.length) {
+            break;
+        }
+
+        for(let event of events) {
+            if(interrupted) {
+                break;
+            }
+
+            try {
+                const fights = await getFightsForEvent(event.pageurl);
+
+                allFights = allFights.concat(fights.map(fight => Object.assign(fight, event)));
+            } catch(err) {
+                interrupted = err;
+                break;
+            }
+        }
     }
 
-    return csvWrite(path.resolve(__dirname, "../data/fights.csv"), data.concat(allFights), {
+    await csvWrite(outputFile, existingData.concat(allFights), {
         columns: "pageurl,eid,mid,event_name,event_org,event_date,event_place,f1pageurl,f2pageurl,f1name,f2name,f1result,f2result,f1fid,f2fid,method,method_d,ref,round,time".split(","),
         header: true,
         formatters: {
             date: formatDate
         }
     });
-});
 
-function getRecentEventsByPage(page) {
-    const url = `${SHERDOG_URL}/organizations/Ultimate-Fighting-Championship-2/recent-events/${page}`;
+    if(interrupted instanceof Error) {
+        throw interrupted;
+    }
+}
+
+function getRecentEventsByPage(promotion, page) {
+    const url = `${SHERDOG_URL}/organizations/${promotion}/recent-events/${page}`;
     console.log(`> GET ${url}`);
 
     return fetch(url).then(res => {
@@ -101,7 +148,7 @@ function getFightsForEvent(event) {
         const [a, f1fid] = f1pageurl.match(/-(\d+)$/);
         const [b, f2fid] = f2pageurl.match(/-(\d+)$/);
         const mainEventFooter = mainEvent.find(".footer tr td");
-        const [c, method, method_d] = mainEventFooter.eq(1).text().match(/^\s*(.+)\((.+)\)\s*$/);
+        const [c, method, method_d] = mainEventFooter.eq(1).text().match(/^\s*(.+)(?:\((.+)\))?\s*$/);
         const mid = mainEventFooter.eq(0).text().replace(/Match/, "").trim()
 
         const mainEventData = {
@@ -114,8 +161,8 @@ function getFightsForEvent(event) {
             f2name: f2.find("span[itemprop='name']").text(),
             f2result: f2.find(".final_result").text(),
             mid: parseInt(mid),
-            method: method.trim(),
-            method_d: method_d.trim(),
+            method: (method || "").trim(),
+            method_d: (method_d || "").trim(),
             ref: mainEventFooter.eq(2).text().trim(),
             round: parseInt(mainEventFooter.eq(3).text().replace(/Round/, "")),
             time: mainEventFooter.eq(4).text().replace(/Time/, "").trim()
@@ -134,7 +181,7 @@ function getFightsForEvent(event) {
 
             const c4 = columns.eq(4);
             const ref = c4.find(".sub_line").text().trim();
-            const [c, method, method_d] = c4.text().replace(ref, "").trim().match(/^\s*(.+)\((.+)\)\s*$/);
+            const [c, method, method_d] = c4.text().replace(ref, "").trim().match(/^\s*(.+)(?:\((.+)\))?\s*$/);
 
             return {
                 mid: parseInt(columns.eq(0).text().trim()),
@@ -147,8 +194,8 @@ function getFightsForEvent(event) {
                 f2pageurl,
                 f2result: f2.find(".final_result").text().trim(),
                 ref,
-                method: method.trim(),
-                method_d: method_d.trim(),
+                method: (method || "").trim(),
+                method_d: (method_d || "").trim(),
                 round: parseInt(columns.eq(5).text()),
                 time: columns.eq(6).text().trim()
             };
@@ -161,3 +208,5 @@ function getFightsForEvent(event) {
 function formatDate(date) {
     return `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
 }
+
+process.on("SIGINT", () => interrupted = true);

@@ -1,14 +1,15 @@
 version: '2'
 services:
   web:
-    image: abiosoft/caddy
+    image: adriancooney/caddy
     links:
       - api
     volumes:
       - ${HOME}/.caddy:/root/.caddy
       - ./Caddyfile:/etc/Caddyfile
+      - ./:/src
     ports:
-      - 8883:3000
+      - 8888:80
 
   api:
     image: begriffs/postgrest:latest

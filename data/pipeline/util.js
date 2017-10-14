@@ -17,7 +17,11 @@ async function csvRead(filepath, options) {
     const contents = await readFile(filepath);
 
     return new Promise((resolve, reject) => {
-        csv.parse(contents, options, (err, data) => {
+        csv.parse(contents, {
+            columns: true,
+            auto_parse: true,
+            ...options
+        }, (err, data) => {
             if(err) {
                 return reject(err);
             }

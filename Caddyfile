@@ -1,3 +1,14 @@
-localhost:3000 {
-    proxy / api:3000
+localhost:80 {
+    root /src
+}
+
+api.localhost:80 {
+    proxy / api:3000 {
+        header_downstream Cache-Control "public, max-age=3600"
+        header_downstream -Content-Range
+    }
+
+    # cache {
+    #     path /tmp/caddy-cache
+    # }
 }

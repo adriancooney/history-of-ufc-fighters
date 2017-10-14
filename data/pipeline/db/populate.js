@@ -37,8 +37,13 @@ async function main() {
         await client.connect();
 
         try {
-            await populateFights(client, FIGHTS_FILE)
             await populateFighters(client, FIGHTERS_FILE);
+
+            const promotions = await csvRead(path.resolve(__dirname, "../../promotions.csv"));
+
+            for(let promotion of promotions) {
+                await populatePromotionFights(client, promotion, path.resolve(__dirname, `../../fights/fights-${promotion.slug}.csv`))
+            }
         } catch(err) {
             console.error(err);
         }
@@ -90,12 +95,18 @@ async function initializeDatabase(sqlFile, options = {}) {
     });
 }
 
-async function populateFights(client, filepath) {
+async function populatePromotionFights(client, promotion, filepath) {
+    console.log("> creating promotion", promotion.name);
     const data = await csvRead(filepath, { columns: true });
 
     const promotionResult = await client.query(
-        "INSERT INTO mma.promotion(name, nickname) VALUES('Ultimate Fighting Championship', 'UFC') RETURNING id, name, nickname"
-    );
+        "INSERT INTO mma.promotion(name, nickname) VALUES($1, $2) RETURNING id, name, nickname",
+        [promotion.name, promotion.nickname || null]
+    ).catch(err => {
+        console.error(`Error creating promotion: `, promotion);
+
+        throw err;
+    });
 
     const ufc = promotionResult.rows[0];
 
@@ -112,8 +123,8 @@ async function populateFights(client, filepath) {
         };
     }), async event => {
         const result = await client.query(
-            "INSERT INTO mma.event(name, location, dateof, sherdog_id, sherdog_url) VALUES($1, $2, $3, $4, $5) RETURNING id",
-            [event.name, event.location, event.date, event.sherdog_id, event.sherdog_url]
+            "INSERT INTO mma.event(name, location, dateof, sherdog_id, sherdog_url, promotion) VALUES($1, $2, $3, $4, $5, $6) RETURNING id",
+            [event.name, event.location, event.date, event.sherdog_id, event.sherdog_url, event.promotion]
         ).catch(err => {
             console.error(`Error creating event: `, event);
 
@@ -121,31 +132,6 @@ async function populateFights(client, filepath) {
         });
 
         return Object.assign(event, {
-            id: result.rows[0].id
-        });
-    });
-
-    const fighters = await mapSeries(map(data.reduce((fighters, fight) => {
-        if(!fighters[fight.f1fid]) {
-            fighters[fight.f1fid] = pickFighter(1, fight);
-        }
-
-        if(!fighters[fight.f2fid]) {
-            fighters[fight.f2fid] = pickFighter(2, fight);
-        }
-
-        return fighters;
-    }, {}), fighter => fighter), async fighter => {
-        const result = await client.query(
-            "INSERT INTO mma.fighter(name, sherdog_id, sherdog_url) VALUES($1, $2, $3) RETURNING id",
-            [fighter.name, fighter.sherdog_id, fighter.sherdog_url]
-        ).catch(err => {
-            console.error(`Error creating fighter: `, fighter);
-
-            throw err;
-        });
-
-        return Object.assign(fighter, {
             id: result.rows[0].id
         });
     });
@@ -182,7 +168,11 @@ async function populateFights(client, filepath) {
 
         await mapSeries([1, 2], async idx => {
             const fid = parseInt(rawFight[`f${idx}fid`]);
-            const fighter = fighters.find(fighter => fighter.sherdog_id === fid);
+            const fighter = (await client.query("SELECT * FROM mma.fighter WHERE sherdog_id = $1", [fid])).rows[0]
+
+            if(!fighter) {
+                throw new Error(`Cannot find fighter for fid: ${fid}`);
+            }
 
             await client.query(
                 "INSERT INTO mma.fight_fighters(fight, fighter, result) VALUES($1, $2, $3)",
@@ -197,22 +187,28 @@ async function populateFights(client, filepath) {
 }
 
 async function populateFighters(client, filepath) {
-    const fighters = await csvRead(filepath, { columns: true });
+    console.log("> creating fighters");
+    const fighters = await csvRead(filepath);
 
     for(let fighter of fighters) {
         const [_, y, m, d] = fighter.dob.match(/(\d+)-(\d+)-(\d+)/) || [];
 
         await client.query(
-            `UPDATE mma.fighter SET
-                dob = $1,
-                nationality = $2,
-                address = $3,
-                association = $4,
-                class = $5,
-                height = $6,
-                weight = $7
-            WHERE
-                sherdog_id = $8`,
+            `INSERT INTO mma.fighter(
+                dob,
+                nationality,
+                address,
+                association,
+                class,
+                height,
+                weight,
+                nickname,
+                name,
+                sherdog_id,
+                sherdog_url
+            ) VALUES(
+                $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
+            )`,
             [
                 d && m && y ? `${d}/${m}/${y}` : null,
                 fighter.nationality || null,
@@ -221,7 +217,10 @@ async function populateFighters(client, filepath) {
                 fighter["class"] && fighter["class"] !== "N/A" ? fighter["class"] : null,
                 fighter.height || null,
                 fighter.weight || null,
-                fighter.id
+                fighter.nickname || null,
+                fighter.name,
+                fighter.id,
+                fighter.url
             ]
         ).catch(err => {
             console.error(`Error updating fighter: `, fighter);

@@ -13,42 +13,38 @@ const {
 } = require("lodash");
 
 const SHERDOG_URL = "http://www.sherdog.com"
-const FIGHTS_FILE = path.resolve(__dirname, "../../fights.csv");
-const OUTPUT_FILE = path.resolve(__dirname, "../../fighters.csv");
+const DATA_DIR = path.resolve(__dirname, "../../");
+const OUTPUT_FILE = path.join(DATA_DIR, "fighters.csv");
 
-// Read what we already got
-csvRead(OUTPUT_FILE, {
-    columns: true,
-    auto_parse: true
-}).catch(err => {
-    if(err.code === "ENOENT") {
-        return [];
-    }
+main().catch(err => console.error(err));
 
-    throw err;
-}).then(async existingFighters => {
-    const fights = await csvRead(FIGHTS_FILE, { columns: true });
-    const fighters = differenceBy(uniqBy(flatten(fights.map(({ f1fid, f1pageurl, f2fid, f2pageurl }) => ([
-        { id: parseInt(f1fid), url: f1pageurl },
-        { id: parseInt(f2fid), url: f2pageurl }
-    ]))), property("id")), existingFighters, property("id"));
+let interrupted = false;
+process.on("SIGINT", () => interrupted = true);
+
+async function main() {
+    // Read what we already got
+    const existingFighters = await csvRead(OUTPUT_FILE);
+    const bareFighters = await getAllFightersFromFights();
+    const fighters = differenceBy(bareFighters, existingFighters, property("id"));
 
     const downloadedFighters = [];
-    for(let i = 0; i < fighters.length; i++) {
-        console.log(`> ${fighters[i].url}`);
-        downloadedFighters.push(await getFighterByURL(fighters[i]));
+    for(let fighter of fighters) {
+        if(interrupted) {
+            break;
+        }
 
-        await new Promise(resolve => setTimeout(resolve, 500));
+        console.log(`> ${fighter.url}`);
+
+        downloadedFighters.push(await getFighterByURL(fighter));
     }
 
-    return csvWrite(OUTPUT_FILE, existingFighters.concat(downloadedFighters), {
+    console.log(`writing fighters to ${OUTPUT_FILE}`);
+    return csvWrite(OUTPUT_FILE, uniqBy(existingFighters.concat(downloadedFighters), property("id")), {
         header: true
     });
-}).catch(err => {
-    console.log(err);
-});
+}
 
-function getFighterByURL({ id, url }) {
+function getFighterByURL({ id, url, name }) {
     return fetch(`${SHERDOG_URL}${url}`).then(res => {
         return res.text();
     }).then(html => {
@@ -59,8 +55,8 @@ function getFighterByURL({ id, url }) {
         const [b, weight] = (bio.find(".weight").text() || "").match(/(\d+\.\d+)\s+kg\s+$/i) || [];
 
         return {
-            id, url,
-            nickname: bio.find(".nickname").text() || null,
+            id, url, name,
+            nickname: bio.find(".nickname em").text() || null,
             dob: bio.find("span[itemprop='birthDate']").text() || null,
             nationality: bio.find("strong[itemprop='nationality']").text() || null,
             address: bio.find("span[itemprop='address']").text() || null,
@@ -70,4 +66,28 @@ function getFighterByURL({ id, url }) {
             weight: parseFloat(weight) || null
         };
     })
+}
+
+async function getAllFightersFromFights() {
+    const promotions = await csvRead(path.join(DATA_DIR, `promotions.csv`), {
+        columns: true
+    });
+
+    let fighters = [];
+
+    for(let promotion of promotions) {
+        console.log(promotion.slug);
+        const fights = await csvRead(path.join(DATA_DIR, `fights/fights-${promotion.slug}.csv`));
+
+        fighters = fighters.concat(
+            flatten(
+                fights.map(({ f1fid, f1pageurl, f2fid, f2pageurl, f1name, f2name }) => ([
+                    { id: parseInt(f1fid), url: f1pageurl, name: f1name },
+                    { id: parseInt(f2fid), url: f2pageurl, name: f2name }
+                ]))
+            )
+        );
+    }
+
+    return uniqBy(fighters, property("id"));
 }

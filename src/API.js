@@ -3,7 +3,7 @@ export default class API {
         this.host = host;
     }
 
-    request(url, options = {}) {
+    async request(url, options = {}) {
         if(options.single) {
             options = Object.assign({
                 headers: Object.assign({
@@ -12,28 +12,54 @@ export default class API {
             }, options);
         }
 
-        return fetch(`${this.host}${url}`, options).then(res => res.json());
+        const res = await fetch(`${this.host}${url}`, options);
+        const body = await res.text();
+
+        return JSON.parse(body, (key, value) => key.includes("date") ? new Date(value) : value);
     }
 
     async getBounds() {
-        const bounds = await this.request(`/bounds?select=*`, { single: true });
+        let bounds = await this.request(`/bounds?select=*`, { single: true });
+        bounds = _.mapKeys(bounds, (value, key) => _.camelCase(key));
 
-        return _.mapKeys(bounds, (value, key) => _.camelCase(key));
+        return Object.assign(bounds, {
+            minDate: new Date(bounds.minDate),
+            maxDate: new Date(bounds.maxDate)
+        });
     }
 
-    getFighters(options = {}) {
+    async getOpponent({ fight, fighter }) {
+        return (await this.request(`/fight_fighters?select=fighter(*,fights:fight_fighters(*, fight(*, event(*))))&and=(fight.eq.${fight.id},fighter.neq.${fighter})`, {
+            single: true
+        })).fighter;
+    }
+
+    getBriefFighters(options = {}) {
         const filter = [];
 
         if(options.winCount) filter.push(`win_count.gte.${options.winCount}`);
         if(options.lossCount) filter.push(`loss_count.gte.${options.lossCount}`);
-        if(options.fightCount) filter.push(`fight_count.gte.${options.fightCount}`);
-        if(options.search) filter.push(`name.ilike.*${options.search}*`);
+        if(options.totalCount) filter.push(`fight_count.gte.${options.totalCount}`);
+        if(options.search) filter.push(`or(name.ilike.*${options.search}*,nickname.ilike.*${options.search}*)`);
+        if(options.promotion) filter.push(`promotion.eq.${options.promotion}`);
+        if(options.weightClass) filter.push(`class.eq."${options.weightClass}"`);
 
-        return this.request(`/fighter_stats?select=name,id${filter.length ? `&and=(${filter.join(",")})` : ""}`);
+        return this.request(`/all_fighters?select=name,id,nickname${filter.length ? `&and=(${filter.join(",")})` : ""}`);
+    }
+
+    async getFighters(fighters) {
+        return (await this.request(
+            `/fighter?select=*,fights:fight_fighters.fighter(*,fight:fight.id(*,event(*)))` +
+            `&id=in.${fighters.join(",")}`
+        ));
+    }
+
+    getFight(id) {
+        return this.request(`/full_fights?id=eq.${id}`, { single: true });
     }
 
     getInitialSelectedFighters() {
-        return this.request("/initial_selected?select=*,fights:fight(*)");
+        return this.request("/initial_selected?select=*,fights:fight_fighters.fighter(*, fight(*, event(*)))");
     }
 
     getEvents() {
@@ -41,6 +67,6 @@ export default class API {
     }
 
     getPromotions() {
-        return this.request("/promotion?select=id,name");
+        return this.request("/promotion?select=id,name,nickname");
     }
 }
