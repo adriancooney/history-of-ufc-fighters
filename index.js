@@ -18,7 +18,8 @@ const initialSelected = [
     "Donald Cerrone",
     "Georges St. Pierre",
     "Frankie Edgar",
-    "Chad Mendes"
+    "Chad Mendes",
+    "Khabib Nurmagomedov",
 ];
 
 const fittedFightLocal = d3.local();
@@ -212,7 +213,7 @@ function drawChart(svg, domain, events, fighters, options, state) {
 
         const timeAxis = d3.axisBottom(timeScale)
             .tickFormat(tick => tick ? typeof tick === "string" ? tick : tick.getFullYear() : undefined)
-            .tickValues(_.drop(timeTicks.ticks(14), 1).concat(domain.maxDate));
+            .tickValues(_.drop(timeTicks.ticks(14), 1));
 
         svg.append("g")
             .attr("transform", `translate(${padding.l}, ${padding.t + netWinsScale(0)})`)
